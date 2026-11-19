@@ -1,0 +1,5 @@
+- insert:
+    - id: desktop-titlebar
+      name: dsh-desktop-titlebar
+      config:
+        order: 10
