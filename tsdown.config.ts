@@ -9,7 +9,8 @@
  * @module tsdown.config
  */
 import { readFile } from 'node:fs/promises'
-import { basename, dirname, resolve } from 'node:path'
+import { basename, dirname, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'tsdown'
 import { transform } from 'lightningcss'
 
@@ -17,6 +18,26 @@ const ID = 'dsh-desktop-titlebar'
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
 /** The suffix must not read as `.css`, or tsdown's own stylesheet pipeline claims the id. */
 const CSS_VIRTUAL_SUFFIX = '.mjs'
+/** This package's directory, which virtual ids are written relative to. */
+const PACKAGE_ROOT = dirname(fileURLToPath(import.meta.url))
+/** The real file behind each virtual id, keyed by the id. */
+const cssFiles = new Map<string, string>()
+
+/**
+ * The virtual id for one stylesheet.
+ *
+ * Bundlers keep a module id in the output (rollup writes it into a comment above
+ * the module), so an absolute id would publish this machine's directory layout
+ * in every build. The id is therefore package-relative, with forward slashes so
+ * the same source produces the same id on every platform.
+ * @param fileId - absolute path of the stylesheet.
+ * @returns the virtual id, remembered against its file.
+ */
+function virtualIdOf(fileId: string): string {
+  const id = CSS_VIRTUAL_PREFIX + relative(PACKAGE_ROOT, fileId).replaceAll('\\', '/') + CSS_VIRTUAL_SUFFIX
+  cssFiles.set(id, fileId)
+  return id
+}
 
 /**
  * The shared module table: these specifiers stay `require()` calls answered by
@@ -78,11 +99,12 @@ const cssModulesPlugin = {
     const absolute = importer === undefined
       ? resolve(source)
       : resolve(dirname(importer), source)
-    return CSS_VIRTUAL_PREFIX + absolute + CSS_VIRTUAL_SUFFIX
+    return virtualIdOf(absolute)
   },
   async load(virtualId: string) {
     if (!virtualId.startsWith(CSS_VIRTUAL_PREFIX)) return null
-    const fileId = virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+    const fileId = cssFiles.get(virtualId)
+      ?? resolve(PACKAGE_ROOT, virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length))
     this.addWatchFile(fileId)
     const source = await readFile(fileId)
     const { code, exports: cssExports } = transform({
