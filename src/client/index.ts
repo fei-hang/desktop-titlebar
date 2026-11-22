@@ -17,6 +17,7 @@ import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 // Type-only: pulls the layout SlotMap declaration (the shell.overlay seat).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { NS, en, zh } from './locales.ts'
+import { openSettings } from './settings.ts'
 import { TitleBar, type TitleBarActions } from './TitleBar.tsx'
 
 /**
@@ -73,6 +74,7 @@ export function apply(ctx: ClientContext): void {
         console.warn('[dsh-desktop-titlebar] openSession failed', error)
       }
     },
+    openSettings: () => { openSettings(ctx) },
   }
 
   ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({

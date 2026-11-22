@@ -44,6 +44,14 @@ export const IconNewChat = glyph([
   <path key="plus" d="M11.5 1.5v4M9.5 3.5h4" />,
 ])
 
+/** Menu glyph: four stacked bars. */
+export const IconMenu = glyph([
+  <path key="a" d="M2.5 4h11" />,
+  <path key="b" d="M2.5 6.7h11" />,
+  <path key="c" d="M2.5 9.3h11" />,
+  <path key="d" d="M2.5 12h11" />,
+])
+
 /** Session-history glyph: a clock face. */
 export const IconClock = glyph([
   <circle key="dial" cx={8} cy={8} r={6} />,

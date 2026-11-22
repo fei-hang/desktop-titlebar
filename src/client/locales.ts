@@ -12,6 +12,17 @@ export const NS = 'desktop-titlebar'
 export type TitlebarKey =
   | 'action.new'
   | 'action.history'
+  | 'action.menu'
+  | 'menu.settings'
+  | 'menu.restart'
+  | 'restart.confirm.title'
+  | 'restart.confirm.body'
+  | 'restart.confirm.cancel'
+  | 'restart.confirm.ok'
+  | 'restart.confirm.close'
+  | 'restart.loading'
+  | 'restart.loading.hint'
+  | 'restart.failed'
   | 'history.search'
   | 'history.empty'
   | 'history.untitled'
@@ -29,6 +40,17 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export const zh: Record<TitlebarKey, string> = {
   'action.new': '新建会话',
   'action.history': '会话历史',
+  'action.menu': '菜单',
+  'menu.settings': '设置',
+  'menu.restart': '重启',
+  'restart.confirm.title': '确定要重启吗？',
+  'restart.confirm.body': 'DSH 的所有进程都会关闭，然后自动重新启动。未发送的输入会丢失。',
+  'restart.confirm.cancel': '取消',
+  'restart.confirm.ok': '立即重启',
+  'restart.confirm.close': '关闭',
+  'restart.loading': '正在重启…',
+  'restart.loading.hint': '窗口稍后会自己回来，请不要手动关闭。',
+  'restart.failed': '重启请求没能发出去，请稍后再试。',
   'history.search': '搜索会话',
   'history.empty': '还没有会话',
   'history.untitled': '未命名会话',
@@ -40,6 +62,17 @@ export const zh: Record<TitlebarKey, string> = {
 export const en: Record<TitlebarKey, string> = {
   'action.new': 'New session',
   'action.history': 'Session history',
+  'action.menu': 'Menu',
+  'menu.settings': 'Settings',
+  'menu.restart': 'Restart',
+  'restart.confirm.title': 'Restart DSH?',
+  'restart.confirm.body': 'Every DSH process will close and the app will start again by itself. Unsent input is lost.',
+  'restart.confirm.cancel': 'Cancel',
+  'restart.confirm.ok': 'Restart now',
+  'restart.confirm.close': 'Close',
+  'restart.loading': 'Restarting…',
+  'restart.loading.hint': 'The window comes back on its own; no need to close anything.',
+  'restart.failed': 'The restart request did not go through. Please try again.',
   'history.search': 'Search sessions',
   'history.empty': 'No sessions yet',
   'history.untitled': 'Untitled session',

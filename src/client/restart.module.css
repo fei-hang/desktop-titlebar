@@ -1,0 +1,130 @@
+/**
+ * Restart surfaces. The scrim covers the viewport above every frame layer and
+ * above the settings dialog, because a restart ends whatever is open behind it.
+ */
+
+div.scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.38);
+  z-index: 1200;
+  box-sizing: border-box;
+  font-family: var(--dsw-font-family, inherit);
+}
+
+div.dialog {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-2, var(--dsw-alias-bg-base, #ffffff));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
+  box-sizing: border-box;
+}
+
+h2.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+p.body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+}
+
+div.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+button.ghost,
+button.primary {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button.ghost {
+  border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}
+
+button.ghost:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+button.primary {
+  background: var(--dsw-alias-accent-primary, #4d6bfe);
+  color: #ffffff;
+}
+
+button.primary:hover {
+  filter: brightness(1.06);
+}
+
+button.ghost:focus-visible,
+button.primary:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-selected, #4d6bfe);
+  outline-offset: 2px;
+}
+
+div.waiting {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dsw-alias-bg-base, #ffffff);
+  z-index: 1200;
+  box-sizing: border-box;
+  font-family: var(--dsw-font-family, inherit);
+}
+
+div.waitingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+span.spinner {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  border-top-color: var(--dsw-alias-accent-primary, #4d6bfe);
+  border-radius: 50%;
+  animation: dsh-titlebar-spin 900ms linear infinite;
+}
+
+span.waitingTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+span.waitingHint {
+  font-size: 12px;
+}
+
+@keyframes dsh-titlebar-spin {
+  to { transform: rotate(360deg); }
+}

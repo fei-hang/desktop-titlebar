@@ -59,6 +59,88 @@ div.bar[data-open='true'] {
   -webkit-app-region: no-drag;
 }
 
+/* The left cluster sits over the strip's start; the strip itself centres the
+   two actions, so this one is taken out of the flow. */
+div.left {
+  position: absolute;
+  left: 8px;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+button.icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+
+button.icon:hover,
+button.icon[data-open='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+button.icon:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-selected, #4d6bfe);
+  outline-offset: -2px;
+}
+
+div.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2, var(--dsw-alias-bg-base, #ffffff));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  z-index: 61;
+}
+
+button.menuItem {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+
+button.menuItem:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+button.menuItem:disabled {
+  color: var(--dsw-alias-label-tertiary);
+}
+
 div.center {
   display: flex;
   align-items: center;

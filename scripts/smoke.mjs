@@ -43,6 +43,8 @@ const react = {
 const table = new Map([
   ['react', react],
   ['react/jsx-runtime', { jsx: () => null, jsxs: () => null, Fragment: 'Fragment' }],
+  // The restart surfaces portal to document.body; the stub only needs to pass the node through.
+  ['react-dom', { createPortal: (node) => node }],
 ])
 const stub = (name) => {
   requested.push(name)
@@ -98,5 +100,7 @@ console.log(JSON.stringify({
 if (registrationsBySeat.length !== 1) throw new Error(`expected one seat registration, got ${registrationsBySeat.length}`)
 const seat = registrationsBySeat[0]
 if (seat.name !== 'shell.overlay' || seat.id !== 'desktop-titlebar') throw new Error(`unexpected seat ${JSON.stringify(seat)}`)
-if (styles.length !== 1) throw new Error(`expected one stylesheet, got ${styles.length}`)
+const sheets = styles.map((tag) => tag.dataset.pluginCss).sort()
+const expectedSheets = ['dsh-desktop-titlebar/restart.module.css', 'dsh-desktop-titlebar/titlebar.module.css']
+if (sheets.join(',') !== expectedSheets.join(',')) throw new Error(`unexpected stylesheets ${JSON.stringify(sheets)}`)
 if (locales.length !== 1 || locales[0].locales.join(',') !== 'en,zh') throw new Error(`unexpected dictionaries ${JSON.stringify(locales)}`)

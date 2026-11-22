@@ -1,11 +1,12 @@
 /**
- * The bar itself: a full-width strip that keeps the window draggable, with the
- * two actions centred in it and the session-history popover hanging below.
+ * The bar itself: a full-width strip that keeps the window draggable, a menu on
+ * the left, the two actions centred in it, and the session-history popover
+ * hanging below.
  *
  * The strip never takes pointer events of its own, so the empty title bar stays
- * a drag region; only the centred controls and the open popover opt in. That is
- * also why the popover closes on a capture-phase press anywhere else: the press
- * has to be seen before the window chrome handles it.
+ * a drag region; only the controls and the open popovers opt in. That is also
+ * why they close on a capture-phase press anywhere else: the press has to be
+ * seen before the window chrome handles it.
  * @module TitleBar
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -21,7 +22,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 // Type-only: pulls the Workspace standard-props merge (props.useWorkspaces).
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
-import { IconClock, IconNewChat } from './icons.tsx'
+import { IconClock, IconMenu, IconNewChat } from './icons.tsx'
+import { RestartOverlay, type RestartPhase } from './restart-dialog.tsx'
 import { filterRows, formatTime, toRows } from './rows.ts'
 import css from './titlebar.module.css'
 
@@ -31,6 +33,8 @@ export interface TitleBarActions {
   readonly startSession: () => void
   /** Show one Session's conversation. */
   readonly openSession: (target: SessionId) => void
+  /** Open the settings dialog. */
+  readonly openSettings: () => void
 }
 
 /**
@@ -49,19 +53,39 @@ export type TitleBarProps = PropsRuntime<'shell.overlay'>
   & PropsLocale<'desktop-titlebar'>
   & OptionalStandardProps
 
+/** Host route that restarts the application. */
+const RESTART_PATH = '/dsh-titlebar/restart'
+
+/**
+ * Ask the Host to restart DSH.
+ * @returns true when the Host accepted the request.
+ */
+async function requestRestart(): Promise<boolean> {
+  try {
+    const response = await fetch(RESTART_PATH, { method: 'POST' })
+    return response.ok
+  } catch (error) {
+    console.warn('[dsh-desktop-titlebar] restart request failed', error)
+    return false
+  }
+}
+
 /**
  * The title bar occupant.
  * @param props - framework standard seats, the injected actions, and the copy seat.
- * @returns the strip, its two actions, and the popover while it is open.
+ * @returns the strip, its menu, its two actions, and the popover while it is open.
  */
 export const TitleBar: SlotComponent<TitleBarProps> = (props: TitleBarProps) => {
-  const { t, startSession, openSession, useSessions, useWorkspaces } = props
+  const { t, startSession, openSession, openSettings, useSessions, useWorkspaces } = props
   const snapshot = useSessions === undefined ? undefined : useSessions((state) => state)
   const archivedIds = useWorkspaces === undefined ? undefined : useWorkspaces((state) => state.archivedSessionIds)
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [restartPhase, setRestartPhase] = useState<RestartPhase>('closed')
   const [query, setQuery] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
   const centerRef = useRef<HTMLDivElement>(null)
+  const leftRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const rows = useMemo(() => {
@@ -76,31 +100,42 @@ export const TitleBar: SlotComponent<TitleBarProps> = (props: TitleBarProps) => 
     setQuery('')
   }, [])
 
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false)
+  }, [])
+
+  const expanded = open || menuOpen
+
   useEffect(() => {
-    if (!open) return undefined
+    if (!expanded) return undefined
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
-      // The popover owns Escape while it is open, or the frame closes something else.
+      // An open popover owns Escape while it is open, or the frame closes something else.
       event.stopPropagation()
       close()
+      closeMenu()
     }
     const onPointerDown = (event: Event): void => {
       const target = event.target
       if (panelRef.current !== null && target instanceof Node && panelRef.current.contains(target)) return
       if (centerRef.current !== null && target instanceof Node && centerRef.current.contains(target)) return
+      if (leftRef.current !== null && target instanceof Node && leftRef.current.contains(target)) return
       close()
+      closeMenu()
     }
     window.addEventListener('keydown', onKeyDown, true)
     document.addEventListener('pointerdown', onPointerDown, true)
     document.addEventListener('mousedown', onPointerDown, true)
     window.addEventListener('blur', close)
+    window.addEventListener('blur', closeMenu)
     return () => {
       window.removeEventListener('keydown', onKeyDown, true)
       document.removeEventListener('pointerdown', onPointerDown, true)
       document.removeEventListener('mousedown', onPointerDown, true)
       window.removeEventListener('blur', close)
+      window.removeEventListener('blur', closeMenu)
     }
-  }, [open, close])
+  }, [expanded, close, closeMenu])
 
   useEffect(() => {
     if (!open) return
@@ -109,8 +144,9 @@ export const TitleBar: SlotComponent<TitleBarProps> = (props: TitleBarProps) => 
 
   const onNewSession = useCallback(() => {
     close()
+    closeMenu()
     startSession()
-  }, [close, startSession])
+  }, [close, closeMenu, startSession])
 
   const onPick = useCallback((id: string) => {
     close()
@@ -118,12 +154,65 @@ export const TitleBar: SlotComponent<TitleBarProps> = (props: TitleBarProps) => 
   }, [close, openSession])
 
   const toggle = useCallback(() => {
+    setMenuOpen(false)
     setOpen((previous) => !previous)
     setQuery('')
   }, [])
 
+  const toggleMenu = useCallback(() => {
+    close()
+    setMenuOpen((previous) => !previous)
+  }, [close])
+
+  const onSettings = useCallback(() => {
+    closeMenu()
+    openSettings()
+  }, [closeMenu, openSettings])
+
+  /** The menu only asks; the dialog owns the decision. */
+  const askRestart = useCallback(() => {
+    closeMenu()
+    setRestartPhase('confirm')
+  }, [closeMenu])
+
+  const cancelRestart = useCallback(() => {
+    setRestartPhase('closed')
+  }, [])
+
+  const confirmRestart = useCallback(() => {
+    // The waiting state is the whole page from here on: an accepted request ends
+    // with the application going away, so nothing ever leaves it.
+    setRestartPhase('restarting')
+    void requestRestart().then((accepted) => {
+      if (!accepted) setRestartPhase('failed')
+    })
+  }, [])
+
   return (
-    <div className={css.bar} data-window-drag-exclude="" data-open={open ? 'true' : 'false'}>
+    <div className={css.bar} data-window-drag-exclude="" data-open={expanded ? 'true' : 'false'}>
+      <div ref={leftRef} className={css.left}>
+        <button
+          type="button"
+          className={css.icon}
+          data-open={menuOpen ? 'true' : 'false'}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          title={t('action.menu')}
+          onClick={toggleMenu}
+        >
+          <IconMenu size={16} />
+        </button>
+        {menuOpen ? (
+          <div className={css.menu} role="menu">
+            <button type="button" role="menuitem" className={css.menuItem} onClick={onSettings}>
+              {t('menu.settings')}
+            </button>
+            <button type="button" role="menuitem" className={css.menuItem} onClick={askRestart}>
+              {t('menu.restart')}
+            </button>
+          </div>
+        ) : null}
+      </div>
       <div ref={centerRef} className={css.center}>
         <button type="button" className={css.action} title={t('action.new')} onClick={onNewSession}>
           <IconNewChat size={16} />
@@ -174,6 +263,12 @@ export const TitleBar: SlotComponent<TitleBarProps> = (props: TitleBarProps) => 
           )}
         </div>
       ) : null}
+      <RestartOverlay
+        phase={restartPhase}
+        t={t}
+        onCancel={cancelRestart}
+        onConfirm={confirmRestart}
+      />
     </div>
   )
 }
