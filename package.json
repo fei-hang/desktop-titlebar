@@ -1,6 +1,6 @@
 {
   "name": "dsh-desktop-titlebar",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Overrides the DSH Desktop title bar: a themed bar with New Session and Session History actions in its middle.",
   "type": "module",
@@ -19,6 +19,14 @@
     "cordis.patch.yml",
     "README.md"
   ],
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm smoke"
+  },
   "dsh": {
     "engines": {
       "dsh": ">=0.2.2-rc.1"
@@ -36,5 +44,27 @@
         "@deepseek-ai/dsh-client-locale"
       ]
     }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-api-session-controller": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-api-workspace-controller": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-locale": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-store": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-session": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-workspace": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.1",
+    "@types/react": "~18.3.1",
+    "lightningcss": "^1.33.0",
+    "react": "^18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   }
 }

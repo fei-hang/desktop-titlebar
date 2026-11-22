@@ -1,0 +1,212 @@
+/**
+ * The title bar's own styles, plus the rules that clear the host's controls out
+ * of the strip it takes over.
+ *
+ * Every global rule below targets elements this package does not own (the
+ * desktop preload's caption menu, the sidebar's opener and toggle, the stock
+ * New Session button), so they stay `:global()` and match the document as-is.
+ */
+
+/* The strip itself: full width, no pointer events, no drag region. */
+div.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--dsh-windows-titlebar-height, 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: transparent;
+  font-family: var(--dsw-font-family, inherit);
+  color: var(--dsw-alias-label-secondary);
+  pointer-events: none;
+  z-index: 1;
+  user-select: none;
+}
+
+/* Outside the desktop title bar (and in fullscreen) the strip stays out of the way. */
+:global(html:not([data-windows-titlebar])) div.bar,
+:global(html[data-fullscreen]) div.bar {
+  display: none;
+}
+
+/* The strip owns the whole title bar: the preload's caption menu and the
+   sidebar's opener step aside. */
+:global(html[data-windows-titlebar] [data-windows-menu]),
+:global(html[data-windows-titlebar] [data-sidebar-opener]) {
+  display: none !important;
+}
+
+/* With the sidebar expanded the strip shows its own New Session action, so the
+   caption's toggle would only duplicate the two buttons below. The rail's panel
+   button is exempt: it lives in the activity rail and is the ONLY way to
+   collapse the sidebar once the rail is pinned, so hiding it strands the user. */
+:global(html[data-windows-titlebar]:not(:has([data-sidebar-collapsed='true'])) [data-sidebar-toggle]:not([role='toolbar'] *)) {
+  display: none !important;
+}
+
+/* Collapsed: the sidebar keeps its own New Session affordance, the strip drops its. */
+:global(html[data-windows-titlebar]:has([data-sidebar-collapsed='true']) [class*=newSession]) {
+  display: none !important;
+}
+
+/* While the popover is open the strip takes pointer events, so a press on its
+   empty area dismisses the popover instead of dragging the window. */
+div.bar[data-open='true'] {
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+div.center {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+button.action {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: default;
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+}
+
+button.action:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+button.action[data-open='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+button.action:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-selected, #4d6bfe);
+  outline-offset: -2px;
+}
+
+div.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(60vh, 480px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-bottom: 6px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-2, var(--dsw-alias-bg-base, #ffffff));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  color: var(--dsw-alias-label-primary);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  z-index: 61;
+}
+
+input.search {
+  height: 30px;
+  margin: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+input.search:focus {
+  border-color: var(--dsw-alias-border-selected, #4d6bfe);
+}
+
+input.search::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+div.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+button.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  flex: none;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+
+button.row:hover,
+button.row[data-active='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+button.row:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-selected, #4d6bfe);
+  outline-offset: -2px;
+}
+
+span.rowTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+span.rowTag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.16));
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+span.rowTime {
+  margin-left: auto;
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+div.empty {
+  padding: 14px 12px 18px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  text-align: center;
+}

@@ -40,14 +40,6 @@ Clicking **会话历史** opens a panel under the bar. It closes when
 - Escape is pressed,
 - the window loses focus (native caption button, minimise, alt-tab).
 
-## Keeping the served bundle fresh
-
-A client bundle's revision comes from the file's mtime/ctime/size, and the module
-table only recomputes it when the loader row restarts. `lib/index.js` therefore
-declares `inject = ['clientModules']`, calls `clientModules.rebuilt('dsh-desktop-titlebar')`
-on activation, and `watchFile`s `lib/client.js` so an edit reaches the page on the
-next reload without restarting the row.
-
 Colours come from the same CSS custom properties the host uses
 (`--dsw-specific-sidebar-fill`, `--dsw-alias-label-secondary`,
 `--dsw-alias-interactive-bg-hover`, `--dsw-alias-label-primary`,
@@ -82,3 +74,33 @@ clicks. Only the two buttons opt back in with `pointer-events: auto`.
 
 `dsh.bundle.patch` is what makes the profile treat this package as a bundle, so
 restarting DSH Desktop activates it.
+
+## Development
+
+`src/` holds the sources; `lib/` is build output and is not edited by hand.
+
+```
+src/index.ts              host half (the plugin row the profile activates)
+src/client/index.ts       browser half: dictionaries + the shell.overlay seat
+src/client/TitleBar.tsx   the bar, its two actions, and the history popover
+src/client/rows.ts        session snapshot -> sorted, filterable rows
+src/client/icons.tsx      the two inline glyphs
+src/client/locales.ts     zh/en copy
+src/client/titlebar.module.css   the bar's styles and the host-clearing rules
+```
+
+`tsdown.config.ts` builds both halves in one pass: the host half as ESM, and the
+browser half as a CommonJS factory registered through
+`window.__ModuleLoader__.load`. `*.module.css` is compiled by lightningcss into
+hashed class names plus one injected `<style>` tag per stylesheet, so the plugin
+needs no stylesheet row of its own.
+
+```sh
+pnpm install
+pnpm check   # typecheck, tests, build, smoke
+```
+
+`pnpm smoke` loads the built bundle the way the page does — through a fake
+`__ModuleLoader__` and a `require` that only answers the shared module table —
+then drives `apply()` against a recording context and asserts the seat, the
+stylesheet and the dictionaries.
