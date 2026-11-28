@@ -39,6 +39,8 @@ const react = {
   useRef: () => ({ current: null }),
   createContext: () => ({ Provider: () => null }),
   useContext: () => ({}),
+  // The badges subscribe to the job roster; the stub only needs one snapshot read.
+  useSyncExternalStore: (subscribe, getSnapshot) => getSnapshot(),
 }
 const table = new Map([
   ['react', react],

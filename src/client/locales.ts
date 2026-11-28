@@ -14,6 +14,7 @@ export type TitlebarKey =
   | 'action.history'
   | 'action.menu'
   | 'menu.settings'
+  | 'menu.checkUpdates'
   | 'menu.restart'
   | 'restart.confirm.title'
   | 'restart.confirm.body'
@@ -28,6 +29,14 @@ export type TitlebarKey =
   | 'history.untitled'
   | 'history.archived'
   | 'history.running'
+  | 'unread.count.one'
+  | 'unread.count.other'
+  | 'unread.list'
+  | 'jobs.count.one'
+  | 'jobs.count.other'
+  | 'jobs.list'
+  | 'jobs.status.running'
+  | 'jobs.status.stopping'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -42,6 +51,7 @@ export const zh: Record<TitlebarKey, string> = {
   'action.history': '会话历史',
   'action.menu': '菜单',
   'menu.settings': '设置',
+  'menu.checkUpdates': '检查更新',
   'menu.restart': '重启',
   'restart.confirm.title': '确定要重启吗？',
   'restart.confirm.body': 'DSH 的所有进程都会关闭，然后自动重新启动。未发送的输入会丢失。',
@@ -56,6 +66,14 @@ export const zh: Record<TitlebarKey, string> = {
   'history.untitled': '未命名会话',
   'history.archived': '已归档',
   'history.running': '进行中',
+  'unread.count.one': '{count} 条未读消息',
+  'unread.count.other': '{count} 条未读消息',
+  'unread.list': '未读消息',
+  'jobs.count.one': '{count} 个后台任务',
+  'jobs.count.other': '{count} 个后台任务',
+  'jobs.list': '后台任务',
+  'jobs.status.running': '运行中',
+  'jobs.status.stopping': '正在停止',
 }
 
 /** English copy. */
@@ -64,6 +82,7 @@ export const en: Record<TitlebarKey, string> = {
   'action.history': 'Session history',
   'action.menu': 'Menu',
   'menu.settings': 'Settings',
+  'menu.checkUpdates': 'Check for updates',
   'menu.restart': 'Restart',
   'restart.confirm.title': 'Restart DSH?',
   'restart.confirm.body': 'Every DSH process will close and the app will start again by itself. Unsent input is lost.',
@@ -78,4 +97,12 @@ export const en: Record<TitlebarKey, string> = {
   'history.untitled': 'Untitled session',
   'history.archived': 'Archived',
   'history.running': 'Running',
+  'unread.count.one': '{count} unread',
+  'unread.count.other': '{count} unread',
+  'unread.list': 'Unread messages',
+  'jobs.count.one': '{count} running',
+  'jobs.count.other': '{count} running',
+  'jobs.list': 'Background jobs',
+  'jobs.status.running': 'Running',
+  'jobs.status.stopping': 'Stopping',
 }

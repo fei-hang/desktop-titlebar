@@ -57,3 +57,4 @@ export const IconClock = glyph([
   <circle key="dial" cx={8} cy={8} r={6} />,
   <path key="hands" d="M8 4.6V8l2.4 1.5" />,
 ])
+

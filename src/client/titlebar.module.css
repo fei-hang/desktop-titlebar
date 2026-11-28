@@ -142,6 +142,7 @@ button.menuItem:disabled {
 }
 
 div.center {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -291,4 +292,91 @@ div.empty {
   color: var(--dsw-alias-label-tertiary);
   font-size: 13px;
   text-align: center;
+}
+/* The two status badges sit beside the actions, each owning its popover. */
+div.badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* The badges hang past the end of the centred row rather than sitting in it, so
+   one appearing or vanishing never pushes the two actions sideways. */
+div.status {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+/* A fixed box keeps the badge itself still while the counts tick between digits. */
+div.badge > button.action {
+  width: 124px;
+  justify-content: flex-start;
+  font-variant-numeric: tabular-nums;
+}
+
+div.badge > button.action > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+span.dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--dsw-alias-state-success-primary, #22c55e);
+}
+
+div.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2, var(--dsw-alias-bg-base, #fff));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+div.popover button.row {
+  height: 30px;
+}
+
+/* The job badge breathes instead of spinning: a slow pulse reads as "working"
+   without pulling the eye away from the conversation. */
+span.pulse {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.35);
+  animation: dsh-titlebar-badge-breathe 1800ms ease-in-out infinite;
+}
+
+@keyframes dsh-titlebar-badge-breathe {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.35), 0 0 6px 1px rgba(255, 255, 255, 0.55);
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.2), 0 0 2px 0 rgba(255, 255, 255, 0.2);
+  }
 }

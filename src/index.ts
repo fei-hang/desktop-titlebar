@@ -6,6 +6,12 @@
  * bar posts to, and that route hands the actual work to a short-lived script
  * started through WMI. WMI is the only spawn path proven here to survive its
  * parent's death - a plain detached child is reaped with the process group.
+ *
+ * The restart keeps the window as the user left it: a maximized window comes
+ * back maximized, a windowed one comes back windowed. The application itself
+ * persists no window state - it always builds a 1280x820 window - so the helper
+ * reads the placement of the live window before killing it and re-applies it to
+ * the window the relaunched process creates.
  * @module index
  */
 
@@ -30,6 +36,9 @@ const KILL_DELAY_MS = 2000
 
 /** Milliseconds the helper waits between the kill and the relaunch. */
 const RELAUNCH_DELAY_MS = 3000
+
+/** Milliseconds the helper waits for the relaunched window before giving up. */
+const WINDOW_TIMEOUT_MS = 60000
 
 /** The slice of the Host web server this plugin uses. */
 interface WebServerLike {
@@ -58,38 +67,129 @@ function sendJson(response: ServerResponse, status: number, payload: unknown): v
 }
 
 /**
- * Write the helper script: wait, kill every DSH process, wait, start the app
- * again, then delete itself.
+ * Build the PowerShell body of the helper.
  *
- * It is a VBScript rather than a batch file on purpose. WMI starts console
- * programs with a visible console window, and a program launched from that
- * console dies with it - closing the black window used to close DSH. `wscript`
- * is a GUI-subsystem host, so nothing is drawn, and every child it starts with
- * window style 0 stays invisible too.
+ * It reads the live window's placement, kills the application, starts it again,
+ * and re-applies the placement. `showCmd` 3 is SW_SHOWMAXIMIZED; anything else
+ * is left alone, so a windowed restart needs no second step.
  * @param executable - absolute path of the desktop executable.
- * @returns absolute path of the written script.
+ * @param windowName - process name without its extension.
+ * @returns the script text.
+ */
+function helperScript(executable: string, windowName: string): string {
+  const quote = (value: string): string => `'${value.replaceAll("'", "''")}'`
+  return [
+    "$ErrorActionPreference = 'Stop'",
+    `$exe = ${quote(executable)}`,
+    `$windowName = ${quote(windowName)}`,
+    '',
+    'Add-Type -TypeDefinition @"',
+    'using System;',
+    'using System.Runtime.InteropServices;',
+    'public static class DshWindow {',
+    '  [StructLayout(LayoutKind.Sequential)]',
+    '  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }',
+    '  [StructLayout(LayoutKind.Sequential)]',
+    '  public struct POINT { public int X; public int Y; }',
+    '  [StructLayout(LayoutKind.Sequential)]',
+    '  public struct WINDOWPLACEMENT {',
+    '    public int length; public int flags; public int showCmd;',
+    '    public POINT ptMinPosition; public POINT ptMaxPosition; public RECT rcNormalPosition;',
+    '  }',
+    '  [DllImport("user32.dll")]',
+    '  public static extern bool GetWindowPlacement(IntPtr handle, ref WINDOWPLACEMENT placement);',
+    '  [DllImport("user32.dll")]',
+    '  public static extern bool ShowWindow(IntPtr handle, int command);',
+    '  [DllImport("user32.dll")]',
+    '  public static extern bool SetWindowPos(IntPtr handle, IntPtr after, int x, int y, int width, int height, uint flags);',
+    '  public static int ShowCommand(IntPtr handle) {',
+    '    WINDOWPLACEMENT placement = new WINDOWPLACEMENT();',
+    '    placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));',
+    '    return GetWindowPlacement(handle, ref placement) ? placement.showCmd : 0;',
+    '  }',
+    '  public static int[] NormalRect(IntPtr handle) {',
+    '    WINDOWPLACEMENT placement = new WINDOWPLACEMENT();',
+    '    placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));',
+    '    if (!GetWindowPlacement(handle, ref placement)) return new int[0];',
+    '    return new int[] { placement.rcNormalPosition.Left, placement.rcNormalPosition.Top,',
+    '      placement.rcNormalPosition.Right - placement.rcNormalPosition.Left,',
+    '      placement.rcNormalPosition.Bottom - placement.rcNormalPosition.Top };',
+    '  }',
+    '}',
+    '"@',
+    '',
+    'function Get-MainWindow {',
+    '  $found = Get-Process -Name $windowName -ErrorAction SilentlyContinue |',
+    '    Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } |',
+    '    Select-Object -First 1',
+    '  if ($null -eq $found) { return [IntPtr]::Zero }',
+    '  return $found.MainWindowHandle',
+    '}',
+    '',
+    `Start-Sleep -Milliseconds ${String(KILL_DELAY_MS)}`,
+    '$handle = Get-MainWindow',
+    '$maximized = $false',
+    '$rect = @()',
+    'if ($handle -ne [IntPtr]::Zero) {',
+    '  $maximized = ([DshWindow]::ShowCommand($handle) -eq 3)',
+    '  $rect = [DshWindow]::NormalRect($handle)',
+    '}',
+    '',
+    '# The Host runs as ELECTRON_RUN_AS_NODE; a relaunch that inherits it would',
+    '# start the executable as a Node script instead of the desktop app.',
+    'Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue',
+    'Remove-Item Env:DSH_DESKTOP_NODE_EXECUTABLE -ErrorAction SilentlyContinue',
+    '& taskkill /F /IM "$windowName.exe" 2>$null | Out-Null',
+    `Start-Sleep -Milliseconds ${String(RELAUNCH_DELAY_MS)}`,
+    'Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe)',
+    '',
+    `$deadline = (Get-Date).AddMilliseconds(${String(WINDOW_TIMEOUT_MS)})`,
+    'while ((Get-Date) -lt $deadline) {',
+    '  Start-Sleep -Milliseconds 250',
+    '  $handle = Get-MainWindow',
+    '  if ($handle -ne [IntPtr]::Zero) { break }',
+    '}',
+    'if ($handle -ne [IntPtr]::Zero) {',
+    '  # The window is still settling into its first layout; act after that.',
+    '  Start-Sleep -Milliseconds 700',
+    '  if ($maximized) {',
+    '    [DshWindow]::ShowWindow($handle, 3) | Out-Null',
+    '  } elseif ($rect.Count -eq 4) {',
+    '    [DshWindow]::SetWindowPos($handle, [IntPtr]::Zero, $rect[0], $rect[1], $rect[2], $rect[3], 0x0004) | Out-Null',
+    '  }',
+    '}',
+    '',
+    'Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue',
+    '',
+  ].join('\r\n')
+}
+
+/**
+ * Write the helper: a hidden PowerShell worker plus the VBScript that starts it
+ * invisibly.
+ *
+ * The VBScript is not decoration. WMI starts console programs with a visible
+ * console window, and a program launched from that console dies with it -
+ * closing the black window used to close DSH. `wscript` is a GUI-subsystem
+ * host, so nothing is drawn, and the PowerShell it starts with window style 0
+ * stays invisible too.
+ * @param executable - absolute path of the desktop executable.
+ * @returns absolute path of the VBScript launcher.
  */
 function writeHelper(executable: string): string {
-  const file = join(tmpdir(), 'dsh-titlebar-restart.vbs')
+  const windowName = basename(executable).replace(/\.exe$/iu, '')
+  const worker = join(tmpdir(), 'dsh-titlebar-restart.ps1')
+  const launcher = join(tmpdir(), 'dsh-titlebar-restart.vbs')
+  writeFileSync(worker, helperScript(executable, windowName), 'utf8')
+  const command = `powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "${worker}"`
   const lines = [
     'Set shell = CreateObject("WScript.Shell")',
-    // The Host runs as ELECTRON_RUN_AS_NODE; a relaunch that inherits it would
-    // start the executable as a Node script instead of the desktop app.
-    'On Error Resume Next',
-    'Set env = shell.Environment("PROCESS")',
-    'env.Remove "ELECTRON_RUN_AS_NODE"',
-    'env.Remove "DSH_DESKTOP_NODE_EXECUTABLE"',
-    'On Error GoTo 0',
-    `WScript.Sleep ${String(KILL_DELAY_MS)}`,
-    `shell.Run "taskkill /F /IM ""${basename(executable)}""", 0, True`,
-    `WScript.Sleep ${String(RELAUNCH_DELAY_MS)}`,
-    `shell.Run """${executable}""", 1, False`,
-    'On Error Resume Next',
+    `shell.Run "${command.replaceAll('"', '""')}", 0, False`,
     'CreateObject("Scripting.FileSystemObject").DeleteFile WScript.ScriptFullName',
     '',
   ]
-  writeFileSync(file, lines.join('\r\n'), 'utf8')
-  return file
+  writeFileSync(launcher, lines.join('\r\n'), 'utf8')
+  return launcher
 }
 
 /**

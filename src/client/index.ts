@@ -18,6 +18,7 @@ import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { NS, en, zh } from './locales.ts'
 import { openSettings } from './settings.ts'
+import type { JobsFace } from './jobs.ts'
 import { TitleBar, type TitleBarActions } from './TitleBar.tsx'
 
 /**
@@ -43,6 +44,18 @@ export function apply(ctx: ClientContext): void {
   const navigation = (): UiWorkspace | undefined => {
     try {
       return ctx.get('uiWorkspace')
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * Read the background-job client, which the job UI owns and may never mount.
+   * Read on every inject pass rather than once, so a late service is picked up.
+   */
+  const roster = (): JobsFace | undefined => {
+    try {
+      return ctx.get('jobs') as JobsFace | undefined
     } catch {
       return undefined
     }
@@ -75,6 +88,8 @@ export function apply(ctx: ClientContext): void {
       }
     },
     openSettings: () => { openSettings(ctx) },
+    // A getter, not a value: the registration object outlives service arrivals.
+    get jobs() { return roster() },
   }
 
   ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
